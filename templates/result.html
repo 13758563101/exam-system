@@ -91,9 +91,18 @@
         <div class="question-text">{{ q.question }}</div>
 
         {% if q.q_type == 'choice' %}
+        {% set user_ans = user_answers.get('q' ~ q.id, '') %}
+        {# 构建选项映射（处理 options 为空或为字符串的情况）#}
+        {% set opts = [] %}
+        {% if q.options and q.options is iterable and q.options is not string %}
+            {% set opts = q.options %}
+        {% endif %}
+        {# 如果没有选项但有正确答案，生成选项映射 #}
+        {% if not opts and q.answer %}
+            {% set opts = [{'letter': q.answer, 'text': '选项 ' ~ q.answer}] %}
+        {% endif %}
         <div class="options-list">
-            {% for opt in (q.options or []) %}
-            {% set user_ans = user_answers.get('q' ~ q.id, '') %}
+            {% for opt in opts %}
             <div class="option-item {% if opt.letter == q.answer %}correct-answer{% elif opt.letter == user_ans %}your-wrong-answer{% endif %}">
                 <span class="opt-letter">{{ opt.letter }}.</span>
                 <span class="opt-text">{{ opt.text }}</span>
@@ -101,6 +110,12 @@
                 {% if opt.letter == user_ans and opt.letter != q.answer %}<span style="color:#E74C3C;margin-left:8px;font-weight:600;">✗ 你的答案</span>{% endif %}
             </div>
             {% endfor %}
+            {# 如果完全没有选项，直接显示正确答案文字 #}
+            {% if not opts %}
+            <div style="padding:8px 12px;background:#e8f5e9;border:1px solid #27AE60;border-radius:6px;">
+                <span>📝 正确答案：{{ q.answer }}</span>
+            </div>
+            {% endif %}
         </div>
 
         {% elif q.q_type == 'judge' %}
