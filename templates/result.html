@@ -97,15 +97,12 @@
         {% if q.options and q.options is iterable and q.options is not string %}
             {% set opts = q.options %}
         {% endif %}
-        {# 如果没有选项但有正确答案，生成选项映射 #}
-        {% if not opts and q.answer %}
-            {% set opts = [{'letter': q.answer, 'text': '选项 ' ~ q.answer}] %}
-        {% endif %}
+        {# 如果没有选项，直接在下面显示正确答案（不在循环内生成假选项）#}
         <div class="options-list">
             {% for opt in opts %}
             <div class="option-item {% if opt.letter == q.answer %}correct-answer{% elif opt.letter == user_ans %}your-wrong-answer{% endif %}">
                 <span class="opt-letter">{{ opt.letter }}.</span>
-                <span class="opt-text">{{ opt.text }}</span>
+                <span class="opt-text">{{ opt.text|e }}</span>
                 {% if opt.letter == q.answer %}<span style="color:#27AE60;margin-left:8px;font-weight:600;">✓ 正确答案</span>{% endif %}
                 {% if opt.letter == user_ans and opt.letter != q.answer %}<span style="color:#E74C3C;margin-left:8px;font-weight:600;">✗ 你的答案</span>{% endif %}
             </div>
