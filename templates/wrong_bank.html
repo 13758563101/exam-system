@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}错题库 - 云计算考试系统{% endblock %}
+
+{% block extra_head %}
+<style>
+.wrong-bank-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.wrong-bank-header h2 { font-size: 18px; font-weight: 600; padding-left: 8px; border-left: 4px solid #E74C3C; }
+.mastery-bar { height: 6px; background: #e8ecf0; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.mastery-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.filter-bar { background: white; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.filter-btn { background: #f0f0f0; border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: #555; transition: all 0.2s; }
+.filter-btn.active { background: #4A90D9; color: white; }
+#wrongList { display: flex; flex-direction: column; gap: 12px; }
+.wrong-item-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #E74C3C; }
+.wrong-item-card.mastered { border-left-color: #27AE60; opacity: 0.7; }
+.item-meta { display: flex; gap: 10px; font-size: 12px; color: #999; margin-bottom: 8px; }
+.item-meta .source-tag { background: #f0f7ff; color: #4A90D9; padding: 2px 8px; border-radius: 4px; }
+.item-meta .mastery-tag { padding: 2px 8px; border-radius: 4px; }
+.item-actions { display: flex; gap: 8px; margin-top: 10px; }
+.action-btn { background: #f5f5f5; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; cursor: pointer; color: #555; transition: all 0.2s; }
+.action-btn:hover { background: #4A90D9; color: white; }
+.action-btn.mastered-btn:hover { background: #27AE60; }
+.loading { text-align: center; padding: 40px; color: #888; }
+.empty-state { text-align: center; padding: 60px 20px; color: #999; }
+.empty-state .icon { font-size: 60px; margin-bottom: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrong-bank-header">
+    <h2>📝 错题库</h2>
+    <span style="font-size:13px;color:#888;" id="wrongCount">加载中...</span>
+</div>
+
+<div class="filter-bar">
+    <span style="font-size:13px;color:#555;font-weight:500;">模块筛选：</span>
+    <button class="filter-btn active" data-filter="all" onclick="filterSource(this)">全部</button>
+    {% for src in ['Linux','MySQL','Shell','高并发','K8S'] %}
+    <button class="filter-btn" data-filter="{{ src }}" onclick="filterSource(this)">{{ src }}</button>
+    {% endfor %}
+</div>
+
+<div id="wrongList">
+    <div class="loading">正在加载错题库...</div>
+</div>
+
+<script>
+var allWrong = [];
+
+function loadWrongBank() {
+    fetch('/api/wrong_bank?limit=100')
+        .then(r => r.json())
+        .then(data => {
+            allWrong = data;
+            document.getElementById('wrongCount').textContent = data.length + ' 道错题';
+            renderWrongBank(data);
+        })
+        .catch(() => {
+            document.getElementById('wrongList').innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>加载失败，请刷新重试</p></div>';
+        });
+}
+
+function filterSource(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    var filter = btn.dataset.filter;
+    var filtered = filter === 'all' ? allWrong : allWrong.filter(q => q.source === filter);
+    renderWrongBank(filtered);
+}
+
+function renderWrongBank(data) {
+    var list = document.getElementById('wrongList');
+    if (!data.length) {
+        list.innerHTML = '<div class="empty-state"><div class="icon">🎉</div><p>恭喜！暂无错题</p><p style="font-size:13px;margin-top:8px;">继续保持~</p></div>';
+        return;
+    }
+    list.innerHTML = data.map(q => {
+        var masteryPct = Math.round((q.mastery_level || 0) * 100);
+        var masteryColor = masteryPct >= 80 ? '#27AE60' : masteryPct >= 50 ? '#F39C12' : '#E74C3C';
+        var options = typeof q.options === 'string' ? JSON.parse(q.options || '[]') : (q.options || []);
+        var optionsHtml = '';
+        if (q.q_type === 'choice') {
+            optionsHtml = '<div class="options-list" style="margin-top:10px;">' +
+                options.map(o => '<div class="option-item">' +
+                    '<span class="opt-letter">' + o.letter + '.</span>' +
+                    '<span class="opt-text">' + o.text + '</span>' +
+                    (o.letter === q.answer ? '<span style="color:#27AE60;margin-left:8px;font-weight:600;">✓</span>' : '') +
+                '</div>').join('') + '</div>';
+        }
+        return '<div class="wrong-item-card" data-source="' + q.source + '" data-qid="' + q.q_id + '">' +
+            '<div class="item-meta">' +
+                '<span class="source-tag">' + q.source + '</span>' +
+                '<span>' + q.chapter + '</span>' +
+                '<span>·</span><span>错题次数: ' + q.wrong_count + '</span>' +
+            '</div>' +
+            '<div style="font-size:15px;color:#333;margin-bottom:8px;">' + q.question + '</div>' +
+            optionsHtml +
+            '<div style="margin-top:10px;font-size:13px;"><strong style="color:#27AE60;">答案：</strong>' + q.answer + '</div>' +
+            (q.analysis ? '<div style="font-size:13px;color:#666;margin-top:6px;"><strong>💡 解析：</strong>' + q.analysis + '</div>' : '') +
+            '<div style="margin-top:10px;">' +
+                '<span style="font-size:12px;color:#888;">掌握度</span>' +
+                '<div class="mastery-bar"><div class="mastery-fill" style="width:' + masteryPct + '%;background:' + masteryColor + ';"></div></div>' +
+                '<span style="font-size:12px;color:' + masteryColor + ';">' + masteryPct + '%</span>' +
+            '</div>' +
+            '<div class="item-actions">' +
+                '<button class="action-btn mastered-btn" onclick="markMastered(' + q.q_id + ', this)">✅ 已掌握</button>' +
+                '<button class="action-btn" onclick="toggleAnswer(this)">👁️ 查看详情</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function markMastered(qid, btn) {
+    fetch('/api/wrong/' + qid + '/master', { method: 'POST' })
+        .then(() => {
+            var card = btn.closest('.wrong-item-card');
+            card.classList.add('mastered');
+            card.style.opacity = '0.5';
+            btn.textContent = '✓ 已标记';
+            btn.disabled = true;
+        });
+}
+
+function toggleAnswer(btn) {
+    var card = btn.closest('.wrong-item-card');
+    var answers = card.querySelectorAll('.answer-content, .options-list');
+    answers.forEach(el => {
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    });
+}
+
+loadWrongBank();
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}收藏题库{% endblock %}
+
+{% block extra_head %}
+<style>
+.question-card { position: relative; }
+.remove-link { position: absolute; top: 10px; right: 10px; color: #e74c3c; cursor: pointer; font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>⭐ 收藏题库 <span style="color:#888; font-size:16px;">{{ questions|length }} 题</span></h2>
+
+{% if not questions %}
+<p style="color:#888; text-align:center; padding:40px;">暂无收藏题目，在答题时点击「⭐ 收藏」按钮添加</p>
+{% endif %}
+
+{% for q in questions %}
+<div class="question-card">
+    <div class="remove-link" onclick="removeFav({{ q.id }})">移除收藏 ×</div>
+    <div class="question-header">
+        <span class="q-number">{{ loop.index }}</span>
+        <span class="q-type-badge">{{ q.q_type }}</span>
+        <span class="q-source">{{ q.source }} · {{ q.chapter }}</span>
+    </div>
+    <div class="question-text">{{ q.question }}</div>
+    {% if q.answer %}<div style="margin-top:8px; color:#4A90D9;">答案: {{ q.answer }}</div>{% endif %}
+    {% if q.analysis %}<div style="color:#888; margin-top:4px;">解析: {{ q.analysis }}</div>{% endif %}
+</div>
+{% endfor %}
+
+<script>
+function removeFav(qid) {
+    if (!confirm('确定移除收藏？')) return;
+    fetch('/api/favorites/' + qid, {method: 'DELETE'}).then(r => r.json()).then(d => {
+        if (d.success) location.reload();
+    });
+}
+</script>
+{% endblock %}

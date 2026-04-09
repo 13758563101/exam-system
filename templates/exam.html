@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}答题 - {{ source }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.progress-bar-wrap { background: white; border-radius: 8px; padding: 12px 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.progress-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #888; margin-bottom: 8px; }
+.progress-track { height: 6px; background: #e8ecf0; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #4A90D9, #6ba3e0); border-radius: 3px; width: 0%; transition: width 0.4s ease; }
+.exam-meta { background: #f0f7ff; border-radius: 8px; padding: 10px 16px; font-size: 13px; color: #4A90D9; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+.exam-meta span { display: flex; align-items: center; gap: 5px; }
+.mode-switch-bar { background: white; border-radius: 8px; padding: 10px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.mode-label { font-size: 14px; font-weight: bold; }
+.mode-label.learn { color: #27ae60; }
+.mode-label.exam { color: #e74c3c; }
+.switch { position: relative; display: inline-block; width: 52px; height: 28px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+.slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #27ae60; }
+input:checked + .slider:before { transform: translateX(24px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="progress-bar-wrap">
+    <div class="progress-info">
+        <span>答题进度</span>
+        <span id="progress-text">0 / {{ questions|length }} 题已答</span>
+    </div>
+    <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+    </div>
+</div>
+
+<div class="mode-switch-bar">
+    <span class="mode-label learn" id="mode-label">📖 学习模式</span>
+    <label class="switch">
+        <input type="checkbox" id="mode-toggle" {% if learn_mode %}checked{% endif %} onchange="toggleMode()">
+        <span class="slider"></span>
+    </label>
+</div>
+
+<div class="exam-meta">
+    <span>📋 考试类型：{{ {'daily':'每日一练','chapter':'章节练习','comprehensive':'综合考试'}.get(exam_type, exam_type) }}</span>
+    <span>📚 模块：{{ source }}</span>
+    <span>📝 总题数：{{ questions|length }}</span>
+    <span>📊 满分：{{ total_score }}分</span>
+</div>
+
+<form id="examForm" method="POST" action="{{ url_for('submit_exam') }}">
+    {% for q in questions %}
+    <div class="question-card" data-qid="{{ q.id }}" data-qtype="{{ q.q_type }}" data-score="{{ q.get('score', 10) }}">
+        <div class="question-header">
+            <span class="q-number">{{ loop.index }}</span>
+            <span class="q-type-badge">{{ {'choice':'单选','fill':'填空','judge':'判断','short_answer':'简答','operation':'实操'}.get(q.q_type, q.q_type) }}</span>
+            <span class="q-source">{{ q.source }} · {{ q.chapter }}</span>
+            <span class="q-score" style="color:#e67e22; margin-left:auto;">{{ q.get('score', 10) }}分</span>
+        </div>
+        <div class="question-text">{{ q.question }}</div>
+
+        {% if q.q_type == 'choice' %}
+            <div class="options-list">
+                {% for opt in (q.options or []) %}
+                <label class="option-item" data-value="{{ opt.letter }}">
+                    <input type="radio" name="q{{ q.id }}" value="{{ opt.letter }}"
+                           onchange="updateProgress()">
+                    <span class="opt-letter">{{ opt.letter }}.</span>
+                    <span class="opt-text">{{ opt.text }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        {% elif q.q_type == 'judge' %}
+            <div class="judge-options">
+                <label class="option-item" data-value="true">
+                    <input type="radio" name="q{{ q.id }}" value="true" onchange="updateProgress()">
+                    <span>✅ 正确</span>
+                </label>
+                <label class="option-item" data-value="false">
+                    <input type="radio" name="q{{ q.id }}" value="false" onchange="updateProgress()">
+                    <span>❌ 错误</span>
+                </label>
+            </div>
+        {% elif q.q_type == 'fill' %}
+            <div class="fill-input">
+                <input type="text" name="q{{ q.id }}" placeholder="请输入答案..." oninput="updateProgress()">
+            </div>
+        {% else %}
+            <div class="fill-input">
+                <textarea name="q{{ q.id }}" rows="4" placeholder="请输入答案..." oninput="updateProgress()"></textarea>
+            </div>
+        {% endif %}
+
+        <div class="answer-section">
+            <button type="button" class="toggle-answer-btn" onclick="toggleAnswer(this)">
+                👁️ 查看答案 & 解析
+            </button>
+            <div class="answer-box" style="display:none;">
+                <div class="answer-content">
+                    <div class="answer-label">📝 正确答案</div>
+                    <div class="answer-text">{{ q.answer }}</div>
+                    {% if q.analysis %}
+                    <div class="analysis-label">💡 解析</div>
+                    <div class="analysis-text">{{ q.analysis }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <button type="button" class="fav-btn" onclick="toggleFav({{ q.id }}, this)" style="background:#f0f0f0; border:1px solid #ddd; padding:4px 12px; border-radius:4px; cursor:pointer; margin-left:10px; font-size:12px;">
+                ⭐ 收藏
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="submit-section">
+        <button type="submit" class="submit-btn" onclick="return confirmSubmit()">
+            提交答卷 ✨
+        </button>
+    </div>
+</form>
+
+<script>
+function updateProgress() {
+    var total = document.querySelectorAll('.question-card').length;
+    var answered = 0;
+    document.querySelectorAll('.question-card').forEach(function(card) {
+        var qid = card.dataset.qid;
+        var checked = card.querySelector('input[name="q'+qid+'"]:checked');
+        var textInput = card.querySelector('input[name="q'+qid+'"]');
+        if (checked) answered++;
+        else if (textInput && textInput.value.trim()) answered++;
+    });
+    var pct = total > 0 ? (answered / total * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = answered + ' / ' + total + ' 题已答';
+}
+
+function toggleAnswer(btn) {
+    var box = btn.nextElementSibling;
+    if (box.style.display === 'none') {
+        box.style.display = 'block';
+        btn.textContent = '🙈 收起答案 & 解析';
+    } else {
+        box.style.display = 'none';
+        btn.textContent = '👁️ 查看答案 & 解析';
+    }
+}
+
+function toggleMode() {
+    var checked = document.getElementById('mode-toggle').checked;
+    var label = document.getElementById('mode-label');
+    if (checked) {
+        label.textContent = '📖 学习模式';
+        label.className = 'mode-label learn';
+    } else {
+        label.textContent = '📝 考试模式';
+        label.className = 'mode-label exam';
+    }
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'learn_mode';
+    input.value = checked ? '1' : '0';
+    document.getElementById('examForm').appendChild(input);
+}
+
+function toggleFav(qid, btn) {
+    fetch('/api/favorites/' + qid, {method: 'POST'})
+        .then(r => r.json())
+        .then(d => {
+            if (d.action === 'added') {
+                btn.textContent = '⭐ 已收藏';
+                btn.style.background = '#FFD700';
+            } else {
+                fetch('/api/favorites/' + qid, {method: 'DELETE'})
+                    .then(r => r.json())
+                    .then(d2 => {
+                        btn.textContent = '⭐ 收藏';
+                        btn.style.background = '#f0f0f0';
+                    });
+            }
+        });
+}
+
+function confirmSubmit() {
+    var total = document.querySelectorAll('.question-card').length;
+    var answered = 0;
+    document.querySelectorAll('.question-card').forEach(function(card) {
+        var qid = card.dataset.qid;
+        var checked = card.querySelector('input[name="q'+qid+'"]:checked');
+        var textInput = card.querySelector('input[name="q'+qid+'"]');
+        if (checked) answered++;
+        else if (textInput && textInput.value.trim()) answered++;
+    });
+    if (answered < total) {
+        return confirm('还有 ' + (total - answered) + ' 题未答，确定要提交吗？');
+    }
+    return true;
+}
+
+updateProgress();
+</script>
+{% endblock %}

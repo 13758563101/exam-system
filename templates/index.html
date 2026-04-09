@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}首页 - 云计算考试系统{% endblock %}
+
+{% block content %}
+<style>
+.stats-bar { display: flex; gap: 16px; margin-bottom: 32px; }
+.stat-card { flex: 1; background: white; border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.stat-card .num { font-size: 36px; font-weight: 700; color: #4A90D9; }
+.stat-card .label { font-size: 13px; color: #888; margin-top: 6px; }
+.exam-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.exam-card { background: white; border-radius: 12px; padding: 28px 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border: 2px solid transparent; text-decoration: none; color: inherit; display: block; }
+.exam-card:hover { transform: translateY(-3px); box-shadow: 0 6px 24px rgba(74,144,217,0.2); border-color: #4A90D9; }
+.exam-card .icon { font-size: 40px; margin-bottom: 12px; }
+.exam-card h3 { font-size: 17px; color: #333; margin-bottom: 8px; }
+.exam-card p { font-size: 13px; color: #888; line-height: 1.6; }
+.exam-card .badge { display: inline-block; background: #e8f4fd; color: #4A90D9; font-size: 12px; padding: 2px 10px; border-radius: 20px; margin-top: 10px; }
+.section-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 16px; padding-left: 8px; border-left: 4px solid #4A90D9; }
+.chapter-section { margin-top: 24px; }
+.chapter-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.chapter-btn { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1.5px solid #e0e6ed; border-radius: 8px; padding: 8px 16px; font-size: 13px; color: #555; text-decoration: none; transition: all 0.2s; }
+.chapter-btn:hover { border-color: #4A90D9; color: #4A90D9; background: #f0f7ff; }
+</style>
+
+<div class="stats-bar">
+    <div class="stat-card">
+        <div class="num">{{ stats.total_questions }}</div>
+        <div class="label">题库总量</div>
+    </div>
+    <div class="stat-card">
+        <div class="num">{{ stats.wrong_questions }}</div>
+        <div class="label">错题数</div>
+    </div>
+    <div class="stat-card">
+        <div class="num">{{ stats.total_exams }}</div>
+        <div class="label">已考试次</div>
+    </div>
+</div>
+
+<div class="exam-grid">
+    <a class="exam-card" href="{{ url_for('start_exam', exam_type='daily') }}?n=80">
+        <div class="icon">📅</div>
+        <h3>每日一练 · 80题</h3>
+        <p>每日80题，60%来自错题库，40%新题，模块按周轮换</p>
+        <span class="badge">推荐</span>
+    </a>
+    <a class="exam-card" href="{{ url_for('start_exam', exam_type='daily') }}?n=100">
+        <div class="icon">📅</div>
+        <h3>每日一练 · 100题</h3>
+        <p>每日100题，60%来自错题库，40%新题，模块按周轮换</p>
+        <span class="badge">强化</span>
+    </a>
+    <a class="exam-card" href="{{ url_for('start_exam', exam_type='chapter') }}?n=80">
+        <div class="icon">📖</div>
+        <h3>章节练习</h3>
+        <p>按模块（Linux/MySQL/Shell/高并发/K8S）分类练习</p>
+        <span class="badge">巩固基础</span>
+    </a>
+    <a class="exam-card" href="{{ url_for('start_exam', exam_type='comprehensive') }}?n=80">
+        <div class="icon">🏆</div>
+        <h3>综合考试</h3>
+        <p>全模块混合，80题随机抽检，模拟真实考试</p>
+        <span class="badge">挑战自我</span>
+    </a>
+    <a class="exam-card" href="{{ url_for('wrong_bank_page') }}" style="border-color: #E74C3C20;">
+        <div class="icon">📝</div>
+        <h3>错题库</h3>
+        <p>基于遗忘曲线（SM-2）智能排序，重点复习易错题</p>
+        <span class="badge" style="background:#fdf0ef;color:#E74C3C;">{{ stats.wrong_questions }} 题待复习</span>
+    </a>
+</div>
+
+<div class="chapter-section">
+    <div class="section-title">按模块章节练习</div>
+    <div class="chapter-grid">
+        {% for src in ['Linux','MySQL','Shell','高并发','K8S'] %}
+        <a class="chapter-btn" href="{{ url_for('start_exam', exam_type='chapter', source=src) }}">
+            📚 {{ src }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

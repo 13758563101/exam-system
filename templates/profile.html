@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}个人中心{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.stat-card .num { font-size: 32px; font-weight: bold; color: #4A90D9; }
+.stat-card .label { color: #888; font-size: 13px; margin-top: 5px; }
+.chart-section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>📊 个人中心</h2>
+
+<div class="stats-grid">
+    <div class="stat-card"><div class="num">{{ stats.total_exams }}</div><div class="label">累计考试</div></div>
+    <div class="stat-card"><div class="num">{{ stats.total_questions }}</div><div class="label">题库总量</div></div>
+    <div class="stat-card"><div class="num">{{ stats.wrong_questions }}</div><div class="label">待复习题</div></div>
+    <div class="stat-card"><div class="num">{{ stats.favorites }}</div><div class="label">收藏题</div></div>
+</div>
+
+{% if stats.daily %}
+<div class="chart-section">
+    <h3>📈 近30天正确率趋势</h3>
+    <canvas id="scoreChart" height="80"></canvas>
+</div>
+{% endif %}
+
+{% if stats.by_source %}
+<div class="chart-section">
+    <h3>📊 各模块刷题量</h3>
+    <canvas id="sourceChart" height="80"></canvas>
+</div>
+{% endif %}
+
+<script>
+var dailyData = {{ stats.daily | tojson | safe }};
+var sourceData = {{ stats.by_source | tojson | safe }};
+
+if (dailyData && dailyData.length > 0) {
+    new Chart(document.getElementById('scoreChart'), {
+        type: 'line',
+        data: {
+            labels: dailyData.map(function(d) { return d.day; }),
+            datasets: [{
+                label: '平均分',
+                data: dailyData.map(function(d) { return d.avg_score; }),
+                borderColor: '#4A90D9',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+    });
+}
+
+if (sourceData && sourceData.length > 0) {
+    new Chart(document.getElementById('sourceChart'), {
+        type: 'bar',
+        data: {
+            labels: sourceData.map(function(d) { return d.source; }),
+            datasets: [{
+                label: '考试次数',
+                data: sourceData.map(function(d) { return d.total; }),
+                backgroundColor: '#4A90D9'
+            }]
+        },
+        options: { responsive: true }
+    });
+}
+</script>
+{% endblock %}

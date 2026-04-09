@@ -1,0 +1,205 @@
+/* ===== 题目卡片 ===== */
+.question-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s;
+}
+.question-card:hover {
+    border-color: #e8ecf0;
+}
+.question-card.wrong {
+    border-color: #E74C3C;
+    border-left-width: 4px;
+}
+
+/* ===== 题头 ===== */
+.question-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.q-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #4A90D9;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.q-type-badge {
+    display: inline-block;
+    background: #f0f7ff;
+    color: #4A90D9;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+.q-source {
+    font-size: 12px;
+    color: #aaa;
+    margin-left: auto;
+}
+
+/* ===== 题目正文 ===== */
+.question-text {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.8;
+    margin-bottom: 14px;
+    font-weight: 500;
+}
+
+/* ===== 选项 ===== */
+.options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.option-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    border: 1.5px solid #e8ecf0;
+    font-size: 14px;
+}
+.option-item:hover {
+    background: #f0f7ff;
+    border-color: #4A90D9;
+}
+.option-item input[type="radio"] {
+    margin-top: 2px;
+    accent-color: #4A90D9;
+    flex-shrink: 0;
+}
+.opt-letter {
+    font-weight: 600;
+    color: #4A90D9;
+    flex-shrink: 0;
+}
+.opt-text {
+    color: #444;
+    line-height: 1.5;
+}
+.correct-answer {
+    background: #f0fff4 !important;
+    border-color: #27AE60 !important;
+}
+
+/* ===== 判断题 ===== */
+.judge-options {
+    display: flex;
+    gap: 12px;
+}
+.judge-options .option-item {
+    flex: 1;
+    justify-content: center;
+}
+
+/* ===== 填空 ===== */
+.fill-input {
+    margin-top: 4px;
+}
+.fill-input input[type="text"],
+.fill-input textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e0e6ed;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+    background: #f8fafc;
+    transition: border-color 0.2s, background 0.2s;
+    outline: none;
+}
+.fill-input input:focus,
+.fill-input textarea:focus {
+    border-color: #4A90D9;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(74,144,217,0.1);
+}
+.fill-input textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* ===== 答案区 ===== */
+.answer-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed #e8ecf0;
+}
+.toggle-answer-btn {
+    background: none;
+    border: 1.5px solid #e0e6ed;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.toggle-answer-btn:hover {
+    background: #f8fafc;
+    color: #4A90D9;
+    border-color: #4A90D9;
+}
+.answer-box {
+    margin-top: 12px;
+    padding: 14px;
+    background: #f8fff4;
+    border-radius: 8px;
+    border: 1px solid #d4edda;
+}
+.answer-content {
+    font-size: 13px;
+    line-height: 1.7;
+}
+.answer-label, .analysis-label {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.answer-label { color: #27AE60; }
+.analysis-label { color: #F39C12; margin-top: 8px; }
+.answer-text { color: #27AE60; font-weight: 500; }
+.analysis-text { color: #666; }
+
+/* ===== 提交按钮 ===== */
+.submit-section {
+    text-align: center;
+    padding: 24px 0 8px;
+}
+.submit-btn {
+    background: linear-gradient(135deg, #4A90D9, #357ABD);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 48px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(74,144,217,0.3);
+}
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74,144,217,0.4);
+}
+.submit-btn:active {
+    transform: translateY(0);
+}

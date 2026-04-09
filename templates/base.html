@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}云计算考试系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f4f7fa; color: #333; min-height: 100vh; }
+        header { background: #4A90D9; color: white; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(74,144,217,0.3); }
+        header h1 { font-size: 18px; font-weight: 600; }
+        header nav a { color: white; text-decoration: none; margin-left: 20px; font-size: 14px; opacity: 0.9; }
+        header nav a:hover { opacity: 1; }
+        main { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+        footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+        .flash-messages { max-width: 900px; margin: 16px auto; padding: 0 16px; }
+        .flash { background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px; font-size: 14px; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <h1>☁️ 云计算考试系统</h1>
+        <nav>
+            <a href="{{ url_for('index') }}">首页</a>
+            <a href="{{ url_for('wrong_bank_page') }}">错题库</a>
+        </nav>
+    </header>
+
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages() %}
+            {% for msg in messages %}
+                <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        {% endwith %}
+    </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        &copy; 2024 云计算考试系统 · 知识库驱动 · 遗忘曲线复习
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
