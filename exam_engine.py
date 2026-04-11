@@ -1,9 +1,18 @@
 """考试引擎 - 组卷与判分"""
 import re
 import random
+import logging
 from datetime import datetime
 from typing import List, Dict, Tuple
 import database
+
+# 调试日志配置
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [GRADE] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('exam_engine')
 
 DIFFICULTY_SCORE = {1: 5, 2: 8, 3: 10, 4: 12}
 DEFAULT_SCORE = 10
@@ -33,7 +42,44 @@ def get_weekday_source() -> str:
 
 
 def normalize_answer(user_answer: str) -> str:
-    return re.sub(r'[\s，。、；;:（）()""\'\'《》【】\[\]]', '', user_answer.strip().lower())
+    """标准化答案：去空格、标点、全角转半角、转小写"""
+    # 先处理判断题常见别名
+    aliases = {
+        '对': 'true', '正确': 'true', '是': 'true', '√': 'true', 't': 'true', 'y': 'true',
+        '错': 'false', '错误': 'false', '否': 'false', '×': 'false', 'f': 'false', 'n': 'false',
+    }
+    stripped = user_answer.strip().lower()
+    if stripped in aliases:
+        return aliases[stripped]
+    # 通用标准化：去所有空白和标点
+    return re.sub(r'[\s，。、；;:（）()""\'\'《》【】\[\]·\-–—]', '', stripped)
+
+
+def normalize_multi_select(answer) -> str:
+    """
+    标准化多选题答案：支持 list 和 string 两种格式
+    - list: ['A', 'C'] → 'ac'（排序后）
+    - str:  'A,C' / 'AC' / 'A C' → 'ac'（排序后）
+    保证无论哪种格式，只要选项相同，结果就一致
+    """
+    if isinstance(answer, list):
+        items = answer
+    elif isinstance(answer, str):
+        # 尝试按常见分隔符拆分
+        raw = answer.strip()
+        for sep in [',', '，', '、']:
+            if sep in raw:
+                items = [s.strip() for s in raw.split(sep) if s.strip()]
+                break
+        else:
+            # 没分隔符，按单字符拆分（处理 "AC" 这种情况）
+            items = list(raw)
+    else:
+        items = [str(answer)]
+
+    # 标准化每个选项并排序，保证顺序一致
+    normalized = sorted(normalize_answer(item) for item in items if item)
+    return ','.join(normalized)
 
 
 def _normalize_scores(questions, target=100):
@@ -160,11 +206,33 @@ def grade_exam(questions: List[Dict], answers: Dict) -> Tuple[int, int, List[int
 
     for q in questions:
         qid = q['id']
+        qtype = q.get('q_type', 'choice')
+        raw_answer = q['answer']
+        
         # 优先用 _raw_score（归一化前备份），其次用 difficulty 计算，fallback 到 score 字段
         score = q.get('_raw_score') or diff_to_score(q.get('difficulty', 3))
         total_score += score
-        user_answer = normalize_answer(answers.get(f'q{qid}', ''))
-        correct_answer = normalize_answer(str(q['answer']))
+        
+        user_raw = answers.get(f'q{qid}', '')
+        user_answer = normalize_answer(user_raw)
+        
+        # 判断题/多选题用专用标准化，单选/填空/简答用通用标准化
+        if qtype in ('judge', 'choice') and isinstance(raw_answer, list):
+            # 多选题（数据库存列表格式）
+            correct_answer = normalize_multi_select(raw_answer)
+            user_answer = normalize_multi_select(user_raw)
+        else:
+            correct_answer = normalize_answer(str(raw_answer))
+        
+        # ===== 调试日志 =====
+        logger.debug(
+            f"QID={qid} type={qtype} | "
+            f"user_raw='{user_raw}' → normalized='{user_answer}' | "
+            f"db_raw='{raw_answer}' → normalized='{correct_answer}' | "
+            f"result={'✓' if user_answer == correct_answer else '✗'}"
+        )
+        # ===================
+
         is_correct = user_answer == correct_answer
 
         if is_correct:
