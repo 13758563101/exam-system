@@ -65,20 +65,32 @@ def normalize_multi_select(answer) -> str:
     if isinstance(answer, list):
         items = answer
     elif isinstance(answer, str):
-        # 尝试按常见分隔符拆分
+        # 先用正则提取所有字母（A-Z a-z）组成备选列表
+        import re
         raw = answer.strip()
+        # 按分隔符拆分
         for sep in [',', '，', '、']:
             if sep in raw:
-                items = [s.strip() for s in raw.split(sep) if s.strip()]
+                parts = [s.strip() for s in raw.split(sep) if s.strip()]
+                # 从每段提取字母
+                items = []
+                for part in parts:
+                    letters = re.findall(r'[A-Za-z]', part)
+                    items.extend(letters)
                 break
         else:
-            # 没分隔符，按单字符拆分（处理 "AC" 这种情况）
-            items = list(raw)
+            # 没分隔符，直接提取所有字母
+            items = re.findall(r'[A-Za-z]', raw)
     else:
         items = [str(answer)]
 
     # 标准化每个选项并排序，保证顺序一致
-    normalized = sorted(normalize_answer(item) for item in items if item)
+    # 多选题不走判断题别名逻辑（避免 a/t/y 被误判为 true）
+    import re
+    normalized = sorted(
+        re.sub(r'[^a-z]', '', item.lower()) 
+        for item in items if item and re.search(r'[a-zA-Z]', item)
+    )
     return ','.join(normalized)
 
 
